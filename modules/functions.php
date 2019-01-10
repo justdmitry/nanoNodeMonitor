@@ -145,16 +145,14 @@ function getLatestReleaseVersion()
     }
   }
 
-  return "";
+  return PROJECT_VERSION;
 }
 
 // get a string with information about the
 // current version and possible updates
-function getVersionInformation()
+function getVersionInformation($latestVersion)
 {
   $currentVersion = PROJECT_VERSION;
-  $latestVersion  = getLatestReleaseVersion();
-
   $versionInfo = "Version: " . $currentVersion;
 
   if ( version_compare($currentVersion, $latestVersion) < 0 )
@@ -171,6 +169,7 @@ function getVersionInformation()
 // get version of latest release from github
 function getLatestNodeReleaseVersion()
 {
+
   // get release tag of "latest" from github
   $curl = curl_init();
 
@@ -210,9 +209,16 @@ function getLatestNodeReleaseVersion()
   return '';
 }
 
+// gets the number from the version string
+function formatVersion($rawversion){
+  $formattedVersion = explode(' ', $rawversion);
+
+  return $formattedVersion[1];
+}
+
 // get a string with information about the
 // current version and possible updates
-function isNewNodeVersionAvailable($currentVersion, $currency)
+function isNewNodeVersionAvailable($currentVersion, $latestVersion, $currency)
 {
 
   // for now, we can only check nano reliably
@@ -221,7 +227,6 @@ function isNewNodeVersionAvailable($currentVersion, $currency)
   } 
 
   $currentVersion = $currentVersion;
-  $latestVersion  = getLatestNodeReleaseVersion();
 
   if ( version_compare($currentVersion, $latestVersion) < 0 ){
     return $latestVersion;
@@ -347,11 +352,17 @@ function getAccountUrl($account, $blockExplorer)
     case 'ninja':
       return "https://mynano.ninja/account/" . $account;
     case 'meltingice':
-      return "https://nano.meltingice.net/explorer/account/" . $account;
+      return "https://nanocrawler.cc/explorer/account/" . $account;
     case 'meltingice-beta':
-      return "https://beta.nano.meltingice.net/explorer/account/" . $account;
+      return "https://beta.nanocrawler.cc/explorer/account/" . $account;
+    case 'nanocrawler':
+      return "https://nanocrawler.cc/explorer/account/" . $account;
+    case 'nanocrawler-beta':
+      return "https://beta.nanocrawler.cc/explorer/account/" . $account;
     case 'nano-beta':
       return "https://beta.nano.org/account/index.php?acc=" . $account;
+    case 'nifni':
+      return "https://nano.nifni.net/explorer.php?s=" . $account;
     case 'banano':
       return "https://creeper.banano.cc/explorer/account/" . $account;
     default:
@@ -396,7 +407,7 @@ function getNodeNinjaBlockcount()
 function getSyncStatus($blockcount){
   $ninjablocks = getNodeNinjaBlockcount();
 
-  if($ninjablocks === false){
+  if($ninjablocks === false || $ninjablocks === 0){
     // if we can't get an error output 100%
     return 100;
   }
@@ -418,10 +429,44 @@ function getNodeLocation($nodeLocationByUser, $nodeNinja) {
     $location = $locationDefault;
 
     if ($nodeLocationByUser) {
+        // location set by user
         $location = $nodeLocationByUser;
     }
     elseif ($nodeNinja && array_key_exists('location', $nodeNinja)) {
-        $location = $nodeNinja->{'location'};
+
+        // location taken from ninja's location object
+        $locationObj = $nodeNinja->{'location'};
+
+        $locCity = '';
+        $locCountry = '';
+
+        // get city from ninja's location object
+        if ($locationObj && isset($locationObj->city)) {
+          $locCity = $locationObj->city;
+        }
+
+        // get country from ninja's location object
+        if ($locationObj && isset($locationObj->country)) {
+          $locCountry = $locationObj->country;
+        }
+
+        // city and country available
+        if (! empty($locCity) && ! empty($locCountry)) {
+          $location = $locCity . ', ' . $locCountry;
+        }
+        elseif (! empty($locCity)) {
+          // only city
+          $location = $locCity;
+        }
+        elseif (! empty($locCountry)) {
+          // only country
+          $location = $locCountry;
+        }
+        else
+        {
+          // nothing given
+          $location = $locationDefault;
+        }
     }
    
     // run some final checks on location

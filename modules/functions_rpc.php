@@ -32,18 +32,8 @@ function getVersion($ch)
   $data = array("action" => "version");
 
   // post curl
-  return postCurl($ch, $data);
+  return postCurl($ch, $data)->{'node_vendor'};
 }
-
-// gets the version from RPC but only the version number
-function getVersionFormatted($ch){
-  $rpcVersion = getVersion($ch);
-  $rpcVersion = $rpcVersion->{'node_vendor'};
-  $formattedVersion = explode(' ', $rpcVersion);
-
-  return $formattedVersion[1];
-}
-
 
 // get block count from nano_node
 function getBlockCount($ch)
@@ -96,6 +86,18 @@ function getAccountWeight($ch, $account)
     "action" => "account_weight",
     "account" => $account
   );
+
+  // post curl
+  return postCurl($ch, $data);
+}
+
+// get number of peers
+function getStats($ch, $type = "counters")
+{
+  // get peers
+  $data = array(
+    "action" => "stats", 
+    "type" => $type);
 
   // post curl
   return postCurl($ch, $data);
